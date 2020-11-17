@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <title>Wijmo 5 - AngularJS directives</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.1/angular.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="https://cdn.grapecity.com/wijmo/5.latest/styles/wijmo.min.css" />
+  <script type="text/javascript" src="https://cdn.grapecity.com/wijmo/5.latest/controls/wijmo.min.js"></script>
+  <script type="text/javascript" src="https://cdn.grapecity.com/wijmo/5.latest/controls/wijmo.input.min.js"></script>
+  <script type="text/javascript" src="https://cdn.grapecity.com/wijmo/5.latest/controls/wijmo.grid.min.js"></script>
+  <script type="text/javascript"
+    src="https://cdn.grapecity.com/wijmo/5.latest/interop/angular/wijmo.angular.min.js"></script>
+  <script type="text/javascript" src="https://cdn.grapecity.com/wijmo/5.latest/controls/wijmo.pdf.min.js"></script>
+  <script type="text/javascript" src="http://cdn.grapecity.com/wijmo/5.latest/controls/wijmo.grid.pdf.min.js"></script>
+
+  <style type="text/css">
+    .wj-flexgrid {
+      height: auto;
+      margin-top: 10px;
+    }
+
+    .wj-flexchart {
+      height: 300px;
+    }
+  </style>
+
+  <script id="insert"></script>
+</head>
+
+<body>
+  <!-- mark this as an Angular application and give it a controller -->
+  <div ng-app="app" ng-controller="appCtrl" class="container">
+    <h1>Hello Wijmo 5 and AngularJS!</h1>
+
+    <h3>This is for <b>Japanese</b></h3>
+    <wj-flex-grid control="grid" items-source="data">
+      <wj-flex-grid-column header="ID" binding="id"></wj-flex-grid-column>
+      <wj-flex-grid-column header="国" binding="country" is-read-only="true">
+      </wj-flex-grid-column>
+      <wj-flex-grid-column header="商品" binding="product"></wj-flex-grid-column>
+      <wj-flex-grid-column header="値引" binding="discount"></wj-flex-grid-column>
+    </wj-flex-grid>
+
+    <br /><br />
+    <h3>This is for <b>Chinese</b></h3>
+    <p> > 查询条件</p>
+    <p> > 在吗 - Are you there?</p>
+    <p> > 在忙 - I’m busy/Are you busy?</p>
+    <p> > 哈哈 - Haha</p>
+
+    <button ng-click="exportPDF(grid, true)">
+      Export
+    </button>
+    <button ng-click="exportPDF(grid, false)">
+      Preview
+    </button>
+  </div>
+
+  <!-- TODO: Missing CoffeeScript 2 -->
+
+  <script type="text/javascript">
+    //<![CDATA[
+
+    // define app, include Wijmo 5 directives
+    var app = angular.module("app", ["wj"]);
+
+    // controller
+    app.controller("appCtrl", function ($scope) {
+      // create some random data
+      var countries = "アメリカ, ドイツ, イギリス, 日本, イタリア, ギリシャ".split(","),
+        data = [];
+      var products = ['ウィジェット', 'ガジェット', 'ツール', 'ツール', 'ツール', 'ツール'];
+      for (var i = 0; i < countries.length; i++) {
+        data.push({
+          id: i,
+          country: countries[i],
+          product: products[i],
+          expenses: Math.random() * 5000,
+          discount: i % 2 === 0,
+        });
+      }
+
+      // expose data as a CollectionView to get events
+      $scope.data = new wijmo.collections.CollectionView(data);
+
+      $scope.exportPDF = function (grid, shouldExport) {
+        var doc = new wijmo.pdf.PdfDocument({
+          ended: function (s, e) {
+            if (shouldExport) {
+              wijmo.pdf.saveBlob(e.blob, "FlexGrid.pdf");
+              return;
+            }
+            var reader = new FileReader();
+            reader.readAsDataURL(e.blob);
+            reader.onloadend = function () {
+              var base64data = reader.result;
+              openLink(base64data);
+            };
+          },
+        });
+        doc.registerFont({ source: 'https://demo.grapecity.com/wijmo/sample/fonts/ipaexg.ttf', 
+                          name: 'ipaexg' });
+        
+        doc.registerFont({ source: '../lib/fonts/FiraSans-Bold.ttf',
+                           name: 'FiraSans-Bold' });
+        
+        doc.drawText('This is for Japanese', null, null, { width: 500});
+        var settings = {
+            styles: {
+                cellStyle: {
+                    font: { family: 'ipaexg' },
+                    backgroundColor: '#ffffff',
+                    borderColor: '#c6c6c6'
+                },
+                altCellStyle: {
+                    backgroundColor: '#f9f9f9'
+                },
+                groupCellStyle: {
+                    backgroundColor: '#dddddd'
+                },
+                headerCellStyle: {
+                    backgroundColor: '#eaeaea'
+                }
+            }
+        };
+        wijmo.grid.pdf.FlexGridPdfConverter.draw(grid, doc, null, null, settings);
+
+        doc.setFont(new wijmo.pdf.PdfFont('ipaexg'));
+        //doc.setFont(new wijmo.pdf.PdfFont('FiraSans-Bold'));
+
+        doc.drawText('This is for Chinese', 0, 160, { width: 500 });
+        doc.drawText('> 查询条件', 0, 175, { width: 500 });
+        doc.drawText('> 在吗 - Are you there?。', 0, 185);
+        doc.drawText('> 在忙 - I’m busy/Are you busy?',0,195);
+        doc.drawText('> 哈哈 - Haha',0,205);
+        doc.end();
+      };
+    });
+    function openLink(base64) {
+      let pdfWindow = window.open("");
+      pdfWindow.document.write(
+        "<iframe width='100%' height='100%' src='" +
+        base64 +
+        "'></iframe>"
+      );
+    }
+
+      //]]>
+  </script>
+</body>
+
+</html>
